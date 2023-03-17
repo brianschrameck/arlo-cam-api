@@ -9,6 +9,7 @@ from arlo.device_db import DeviceDB
 from arlo.device import Device
 from arlo.audio_doorbell import AudioDoorbell
 from arlo.camera import Camera
+from requests_toolbelt.multipart import decoder
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = False
@@ -170,21 +171,27 @@ def set_activity_zones(serial, req_body, device: Camera):
 
 @app.route('/snapshot/<identifier>/', methods=['POST'])
 def receive_snapshot(identifier):
-    if 'file' not in flask.request.files:
+    content_type = flask.request.headers.get("content-type")
+    
+    if not content_type:
         flask.abort(400)
-    else:
-        file = flask.request.files['file']
-        if file.filename == '':
-            flask.abort(400)
-        else:
-            start_path = os.path.abspath('/tmp')
-            target_path = os.path.join(start_path, f"{identifier}.jpg")
-            common_prefix = os.path.commonprefix([target_path, start_path])
-            if (common_prefix != start_path):
-                flask.abort(400)
-            else:
-                file.save(target_path)
-            return ""
+        
+    start_path = os.path.abspath('/tmp')
+    target_path = os.path.join(start_path, f"{identifier}.jpg")
+    common_prefix = os.path.commonprefix([target_path, start_path])
+    
+    if (common_prefix != start_path):
+        flask.abort(400)
+
+    try:
+        multipart_data = decoder.MultipartDecoder(flask.request.get_data(), content_type)
+        file = open(target_path, 'wb')
+        for part in multipart_data.parts:
+            file.write(part.content)
+        file.close()
+    except:
+        flask.abort(400)
+    return ""
 
 
 @app.route('/device/<serial>/registerset', methods=['POST'])
