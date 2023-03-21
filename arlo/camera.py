@@ -22,8 +22,8 @@ class Camera(Device):
             registerSet = Message(copy.deepcopy(arlo.messages.REGISTER_SET_INITIAL_ULTRA))
         else:
             registerSet = Message(copy.deepcopy(arlo.messages.REGISTER_SET_INITIAL_SUBSCRIPTION))
-        registerSet['WifiCountryCode'] = wifi_country_code
-        registerSet['VideoAntiFlickerRate'] = video_anti_flicker_rate
+        registerSet['SetValues']['WifiCountryCode'] = wifi_country_code
+        registerSet['SetValues']['VideoAntiFlickerRate'] = video_anti_flicker_rate
         self.send_message(registerSet)
         self.set_quality({'quality': 'subscription'})
         self.arm({"PIRTargetState": "Armed"})
@@ -84,8 +84,8 @@ class Camera(Device):
             "PIRStartSensitivity": pir_start_sensitivity,
             "PIRAction": "Stream",
             "VideoMotionEstimationEnable": video_motion_estimation_enable,
-            "VideoMotionSensitivity": 80,
-            "AudioTargetState": audio_target_state,
+            "VideoMotionSensitivity": 100,
+            # "AudioTargetState": audio_target_state,
             # Unclear what this does, only set in normal traffic when 'Disarmed'
             "DefaultMotionStreamTimeLimit": 10
         }
