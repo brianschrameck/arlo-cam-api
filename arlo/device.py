@@ -35,7 +35,7 @@ class Device(ABC):
             try:
                 sock.connect((self.ip, self.port))
             except OSError as msg:
-                print('Connection to camera failed: {msg}')
+                print(f'Connection to camera failed: {msg}')
                 return False
 
             result = False
@@ -49,7 +49,7 @@ class Device(ABC):
                 if (ack != None):
                     if (ack['ID'] == message['ID']):
                         if ('Response' in ack and ack['Response'] != "Ack"):
-                            s_print(f"<[{self.ip}][{self.id}] {ack['Response']}")
+                            s_print(f"<[{self.ip}][{self.id}] {ack['Response']}: {ack['Errors']}")
                             result = False
                         else:
                             s_print(f"<[{self.ip}][{self.id}] Ack")
