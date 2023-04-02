@@ -1,22 +1,22 @@
 from arlo.camera import Camera, DEVICE_PREFIXES as CAM_PFIXES
 from arlo.audio_doorbell import AudioDoorbell, DEVICE_PREFIXES as AUD_DBELL_PFIXES
-
-import threading
+from arlo.video_doorbell import VideoDoorbell, DEVICE_PREFIXES as VID_DBELL_PFIXES
 
 
 class DeviceFactory:
-    sqliteLock = threading.Lock()
 
     @staticmethod
     def createDevice(ip, registration):
-        serial_number = registration['SystemModelNumber']
-        if serial_number.startswith(tuple(CAM_PFIXES)):
+        model_number = registration['SystemModelNumber']
+        if model_number.startswith(tuple(CAM_PFIXES)):
             device = Camera(ip, registration)
-        elif serial_number.startswith(tuple(AUD_DBELL_PFIXES)):
+        elif model_number.startswith(tuple(AUD_DBELL_PFIXES)):
             device = AudioDoorbell(ip, registration)
+        elif model_number.startswith(tuple(VID_DBELL_PFIXES)):
+            device = VideoDoorbell(ip, registration)
         else:
             return None
 
         device.status = {}
-        device.friendly_name = serial_number
+        device.friendly_name = registration['SystemSerialNumber']
         return device

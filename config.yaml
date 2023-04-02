@@ -1,4 +1,5 @@
 WifiCountryCode: "US"
+VideoAntiFlickerRate: 60
 NotifyOnMotionAlert: true
 NotifyOnAudioAlert: false
 NotifyOnButtonPressAlert: true

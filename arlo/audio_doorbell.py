@@ -1,4 +1,3 @@
-import threading
 import copy
 
 from arlo.messages import Message
@@ -11,13 +10,11 @@ DEVICE_PREFIXES = [
 
 
 class AudioDoorbell(Device):
-    sqliteLock = threading.Lock()
-
     @property
     def port(self):
         return 4100
 
-    def send_initial_register_set(self, wifi_country_code):
+    def send_initial_register_set(self, wifi_country_code, video_anti_flicker_rate=None):
         registerSet = Message(copy.deepcopy(arlo.messages.AUDIO_DOORBELL_INITIAL_REGISTER_SET))
         self.send_message(registerSet)
 

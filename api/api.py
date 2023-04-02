@@ -7,7 +7,6 @@ from flask import send_file
 import io
 from arlo.device_db import DeviceDB
 from arlo.device import Device
-from arlo.audio_doorbell import AudioDoorbell
 from arlo.camera import Camera
 
 app = flask.Flask(__name__)
@@ -56,10 +55,12 @@ def list():
         return flask.jsonify(devices)
 
 
-@app.route('/device/<serial>', methods=['GET'])
+@app.route('/device/<serial>', methods=['GET', 'DELETE'])
 @validate_device_request(body_required=False)
-def status(serial, device: Device):
-    if device.status is None:
+def device(serial, device: Device):
+    if flask.request.method == 'DELETE':
+        return flask.jsonify({"result": DeviceDB.delete(device)})
+    elif device.status is None:
         return flask.jsonify({})
     else:
         return flask.jsonify(device.status.dictionary)
@@ -84,18 +85,18 @@ def status_request(serial, device: Device):
 @app.route('/device/<serial>/userstreamactive', methods=['POST'])
 @validate_device_request()
 def user_stream_active(serial, req_body, device: Camera):
-    active = req_body["active"]
-    if active is None:
-        flask.abort(400)
+    # active = req_body["active"]
+    # if active is None:
+    #     flask.abort(400)
 
-    result = device.set_user_stream_active(int(active))
-    return flask.jsonify({"result": result})
+    # result = device.set_user_stream_active(int(active))
+    return flask.jsonify({"result": True})
 
 
 @app.route('/device/<serial>/arm', methods=['POST'])
 @validate_device_request()
 def arm(serial, req_body, device: Device):
-    result = device .arm(req_body)
+    result = device.arm(req_body)
     return flask.jsonify({"result": result})
 
 
@@ -205,6 +206,20 @@ def get_snapshot(identifier):
         os.remove(target_path)
         # send it to client
         return send_file(return_data, mimetype='image/jpeg', attachment_filename=f'{identifier}.jpg')
+
+
+@app.route('/device/<serial>/message', methods=['POST'])
+@validate_device_request()
+def message(serial, req_body, device: Device):
+    result = device.send_message_dict(req_body)
+    return flask.jsonify({"result": result})
+
+
+@app.route('/device/<serial>/registerset', methods=['POST'])
+@validate_device_request()
+def register_set(serial, req_body, device: Device):
+    result = device.register_set(req_body)
+    return flask.jsonify({"result": result})
 
 
 def get_thread():

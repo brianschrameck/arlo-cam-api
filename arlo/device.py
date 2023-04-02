@@ -28,12 +28,12 @@ class Device(ABC):
     def __getitem__(self, key):
         return self.registration[key]
 
-    def send_message(self, message):
+    def send_message(self, message: Message, port=None):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
             sock.settimeout(5.0)
             try:
-                sock.connect((self.ip, self.port))
+                sock.connect((self.ip, port or self.port))
             except OSError as msg:
                 print('Connection to camera failed: {msg}')
                 return False
@@ -43,16 +43,15 @@ class Device(ABC):
                 arloSock = ArloSocket(sock)
                 self.id += 1
                 message['ID'] = self.id
-                s_print(f">[{self.ip}][{self.id}] {message['Type']}")
+                s_print(f">[{self.ip}][{self.id}] {message.toNetworkMessage()}")
                 arloSock.send(message)
                 ack = arloSock.receive()
                 if (ack != None):
                     if (ack['ID'] == message['ID']):
-                        if ('Response' in ack and ack['Response'] not in ["Ack", "Ack with Errors"]):
-                            s_print(f"<[{self.ip}][{self.id}] {ack['Response']}")
+                        s_print(f"<[{self.ip}][{self.id}] {ack.toNetworkMessage()}")
+                        if ('Response' in ack and ack['Response'] != "Ack"):
                             result = False
                         else:
-                            s_print(f"<[{self.ip}][{self.id}] Ack")
                             result = True
             except:
                 print(f'Exception: {sys.exc_info()}')
@@ -60,7 +59,7 @@ class Device(ABC):
                 return result
 
     @abstractmethod
-    def send_initial_register_set(self, wifi_country_code):
+    def send_initial_register_set(self, wifi_country_code, video_anti_flicker_rate=None):
         ...
 
     def status_request(self):
@@ -79,3 +78,13 @@ class Device(ABC):
         register_set = Message(copy.deepcopy(arlo.messages.REGISTER_SET))
         register_set['AudioSpkrEnable'] = enabled
         return self.send_message(register_set)
+
+    def register_set(self, set_values):
+        register_set = copy.deepcopy(arlo.messages.REGISTER_SET)
+        register_set['SetValues'] = set_values
+        register_set_message = Message(register_set)
+        return self.send_message(register_set_message)
+
+    def send_message_dict(self, message_dict):
+        message = Message(message_dict)
+        return self.send_message(message)

@@ -62,3 +62,14 @@ class DeviceDB:
             c.execute("REPLACE INTO devices VALUES (?,?,?,?,?,?)", (device.ip, device.serial_number,
                       device.hostname, repr(device.registration), repr(device.status), device.friendly_name))
             conn.commit()
+
+    @staticmethod
+    @synchronized
+    def delete(device: Device):
+        with sqlite3.connect('arlo.db') as conn:
+            c = conn.cursor()
+            # Remove the IP for any redundant device that has the same IP...
+            c.execute("DELETE FROM devices WHERE ip = ? AND serialnumber = ?",
+                      (device.ip, device.serial_number))            
+            conn.commit()
+            return True
