@@ -14,7 +14,7 @@ class VideoDoorbell(Camera):
     def port(self):
         return 4000
 
-    def send_initial_register_set(self, wifi_country_code, video_anti_flicker_rate=None, video_quality_default='default'):
+    def send_initial_register_set(self, wifi_country_code, video_anti_flicker_rate=None, video_quality_default='default', pir_start_state="Armed", pir_start_sensitivity=80):
         registerSet = Message(copy.deepcopy(arlo.messages.REGISTER_SET_INITIAL_VID_DOORBELL))
         self.send_message(registerSet, 4100)
 
@@ -27,6 +27,7 @@ class VideoDoorbell(Camera):
             video_quality_default = '1536sq'
 
         self.set_quality({'quality': video_quality_default})
+        self.set_pir_settings(pir_start_state, pir_start_sensitivity, 80)
 
     def set_quality(self, args):
         quality = args['quality'].lower()
@@ -49,6 +50,8 @@ class VideoDoorbell(Camera):
 
         pir_target_state = args['PIRTargetState']
         pir_start_sensitivity = args.get('PIRStartSensitivity') or 80
+
+        self.validate_arm_args(pir_target_state, pir_start_sensitivity)
 
         register_set['SetValues'] = {
             'PIRTargetState': pir_target_state,

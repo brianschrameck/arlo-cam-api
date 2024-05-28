@@ -25,6 +25,8 @@ class Device(ABC):
         self.status = {}
         self.friendly_name = self.serial_number
         self.model_number = registration['SystemModelNumber']
+        self.pir_start_state = None
+        self.pir_start_sensitivity = None
 
     def __getitem__(self, key):
         return self.registration[key]
@@ -66,6 +68,32 @@ class Device(ABC):
     def status_request(self):
         _status_request = Message(copy.deepcopy(arlo.messages.STATUS_REQUEST))
         return self.send_message(_status_request)
+
+    def set_pir_settings(self, pir_start_state, pir_start_sensitivity, pir_start_sensitivity_default):
+        # set PIR state and PIR Sensitivity if they're not using defaults
+        if pir_start_state is None:
+            pir_start_state = 'Armed'
+        if pir_start_sensitivity is None:
+            pir_start_state_sensivitity = pir_start_sensitivity_default
+
+        update_pir_settings = False
+        if pir_start_state != 'Armed':
+            update_pir_settings = True
+        if pir_start_sensitivity != pir_start_sensitivity_default:
+            update_pir_settings = True
+
+        if update_pir_settings:
+            s_print(f"{self.friendly_name} - Setting custom PIR state: {pir_start_state}, PIR sensitivity: {pir_start_sensitivity}")
+            self.arm({'PIRTargetState': pir_start_state, 'PIRStartSensitivity': pir_start_sensitivity})
+
+    def validate_arm_args(self, pir_target_state, pir_start_sensitivity):
+        if pir_target_state not in ['Armed', 'Disarmed']:
+            s_print(f'{self.friendly_name} - Invalid PIR state value: {pir_target_state}')
+            raise ValueError(f'ERROR: Invalid PIR state value: {pir_target_state}. Valid values: Armed, Disarmed')
+
+        if pir_start_sensitivity < 0 or pir_start_sensitivity > 100:
+            s_print(f'{self.friendly_name} - Invalid PIR sensitivity value: {pir_start_sensitivity}')
+            raise ValueError(f'ERROR: Invalid PIR sensitivity value: {pir_start_sensitivity}. Valid values: 0-100')
 
     def arm(self, args):
         ...

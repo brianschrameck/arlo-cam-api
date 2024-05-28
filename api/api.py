@@ -48,7 +48,7 @@ def list():
         devices = []
         if rows is not None:
             for row in rows:
-                (ip, serial_number, hostname, _, _, friendly_name) = row
+                (ip, serial_number, hostname, _, _, friendly_name, pir_start_state, pir_start_sensitivity, last_update) = row
                 devices.append({"ip": ip, "hostname": hostname,
                                "serial_number": serial_number, "friendly_name": friendly_name})
 
@@ -63,7 +63,9 @@ def device(serial, device: Device):
     elif device.status is None:
         return flask.jsonify({})
     else:
-        return flask.jsonify(device.status.dictionary)
+        status = {"PIRStartState": device.pir_start_state, "PIRStartSensitivity": device.pir_start_sensitivity, "LastUpdate": device.last_update}
+        status.update(device.status.dictionary)
+        return flask.jsonify(status)
 
 
 @app.route('/device/<serial>/registration', methods=['GET'])
@@ -96,7 +98,16 @@ def user_stream_active(serial, req_body, device: Camera):
 @app.route('/device/<serial>/arm', methods=['POST'])
 @validate_device_request()
 def arm(serial, req_body, device: Device):
-    result = device.arm(req_body)
+    try:
+        result = device.arm(req_body)
+    except Exception as e:
+        return flask.jsonify({"result": str(e)}), 400
+
+    device.pir_start_state = req_body['PIRTargetState']
+    if 'PIRStartSensitivity' in req_body:
+        device.pir_start_sensitivity = req_body['PIRStartSensitivity']
+
+    DeviceDB.persist(device)
     return flask.jsonify({"result": result})
 
 

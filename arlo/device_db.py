@@ -1,6 +1,7 @@
 import threading
 import sqlite3
 import functools
+import time
 
 from arlo.messages import Message
 from arlo.device_factory import DeviceFactory
@@ -38,7 +39,7 @@ class DeviceDB:
     @staticmethod
     def from_db_row(row):
         if row is not None:
-            (ip, _, _, registration, status, friendly_name) = row
+            (ip, _, _, registration, status, friendly_name, pir_start_state, pir_start_sensitivity, last_update) = row
             _registration = Message.from_json(registration)
 
             device = DeviceFactory.createDevice(ip, _registration)
@@ -47,6 +48,9 @@ class DeviceDB:
 
             device.status = Message.from_json(status)
             device.friendly_name = friendly_name
+            device.pir_start_state = pir_start_state
+            device.pir_start_sensitivity = pir_start_sensitivity
+            device.last_update = last_update
             return device
         else:
             return None
@@ -59,8 +63,8 @@ class DeviceDB:
             # Remove the IP for any redundant device that has the same IP...
             c.execute("UPDATE devices SET ip = 'UNKNOWN' WHERE ip = ? AND serialnumber <> ?",
                       (device.ip, device.serial_number))
-            c.execute("REPLACE INTO devices VALUES (?,?,?,?,?,?)", (device.ip, device.serial_number,
-                      device.hostname, repr(device.registration), repr(device.status), device.friendly_name))
+            c.execute("REPLACE INTO devices VALUES (?,?,?,?,?,?,?,?,?)", (device.ip, device.serial_number,
+                      device.hostname, repr(device.registration), repr(device.status), device.friendly_name, device.pir_start_state, device.pir_start_sensitivity, int(time.time())))
             conn.commit()
 
     @staticmethod

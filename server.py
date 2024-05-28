@@ -29,7 +29,7 @@ with sqlite3.connect('arlo.db') as conn:
         c.execute('DROP INDEX IF EXISTS idx_device_hostname')
         c.execute('ALTER TABLE camera RENAME TO devices')
 
-    c.execute("CREATE TABLE IF NOT EXISTS devices (ip text, serialnumber text, hostname text, status text, register_set text, friendlyname text)")
+    c.execute("CREATE TABLE IF NOT EXISTS devices (ip text, serialnumber text, hostname text, status text, register_set text, friendlyname text, pir_status text, pir_start_sensitivity integer, last_update integer)")
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_serialnumber ON devices (serialnumber)")
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_ip ON devices (ip)")
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_friendlyname ON devices (friendlyname)")
@@ -72,7 +72,7 @@ class ConnectionThread(threading.Thread):
                     DeviceDB.persist(device)
                     s_print(f"<[{self.ip}][{msg['ID']}] Registration from {msg['SystemSerialNumber']} - {device.hostname}")
 
-                    device.send_initial_register_set(WIFI_COUNTRY_CODE, VIDEO_ANTI_FLICKER_RATE, VIDEO_QUALITY_DEFAULT)
+                    device.send_initial_register_set(WIFI_COUNTRY_CODE, VIDEO_ANTI_FLICKER_RATE, VIDEO_QUALITY_DEFAULT, pir_start_state=device.pir_start_state, pir_start_sensitivity=device.pir_start_sensitivity)
                     webhook_manager.registration_received(
                         device.ip, device.friendly_name, device.hostname, device.serial_number, device.registration)
                 elif (msg['Type'] == "status"):

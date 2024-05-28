@@ -17,7 +17,7 @@ class Camera(Device):
     def port(self):
         return 4000
 
-    def send_initial_register_set(self, wifi_country_code, video_anti_flicker_rate=None, video_quality_default='default'):
+    def send_initial_register_set(self, wifi_country_code, video_anti_flicker_rate=None, video_quality_default='default', pir_start_state="Armed", pir_start_sensitivity=80):
         if self.model_number.startswith('VMC5040'):
             registerSet = Message(copy.deepcopy(arlo.messages.REGISTER_SET_INITIAL_ULTRA))
         elif self.model_number.startswith('FB1001'):
@@ -33,6 +33,7 @@ class Camera(Device):
             video_quality_default = 'insane'
 
         self.set_quality({'quality': video_quality_default})
+        self.set_pir_settings(pir_start_state, pir_start_sensitivity, 80)
 
     def pir_led(self, args):
         register_set = Message(copy.deepcopy(arlo.messages.REGISTER_SET))
@@ -105,6 +106,8 @@ class Camera(Device):
         pir_action = args.get('PIRAction') or 'Stream'
         video_motion_estimation_enable = args.get('VideoMotionEstimationEnable') or False
         audio_target_state = args.get('AudioTargetState') or 'Disarmed'
+
+        self.validate_arm_args(pir_target_state, pir_start_sensitivity)
 
         register_set["SetValues"] = {
             "PIRTargetState": pir_target_state,
