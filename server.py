@@ -34,6 +34,10 @@ with sqlite3.connect('arlo.db') as conn:
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_ip ON devices (ip)")
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_friendlyname ON devices (friendlyname)")
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_hostname ON devices (hostname)")
+        
+    c.execute("CREATE TABLE IF NOT EXISTS register_sets (serialnumber text, set_values text)")
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_register_set_serialnumber ON register_sets (serialnumber)")
+
     conn.commit()
 
 
@@ -72,7 +76,13 @@ class ConnectionThread(threading.Thread):
                     DeviceDB.persist(device)
                     s_print(f"<[{self.ip}][{msg['ID']}] Registration from {msg['SystemSerialNumber']} - {device.hostname}")
 
-                    device.send_initial_register_set(WIFI_COUNTRY_CODE, VIDEO_ANTI_FLICKER_RATE, VIDEO_QUALITY_DEFAULT)
+                    # Retrieve the register set for this device from the database
+                    register_set = DeviceDB.register_set_from_db_serial(msg['SystemSerialNumber'])
+                    if register_set is not None:
+                        device.send_message(register_set)
+                    else:
+                        device.send_initial_register_set(WIFI_COUNTRY_CODE, VIDEO_ANTI_FLICKER_RATE, VIDEO_QUALITY_DEFAULT)
+
                     webhook_manager.registration_received(
                         device.ip, device.friendly_name, device.hostname, device.serial_number, device.registration)
                 elif (msg['Type'] == "status"):

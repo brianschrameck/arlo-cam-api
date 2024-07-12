@@ -8,7 +8,7 @@ from arlo.messages import Message
 from arlo.socket import ArloSocket
 import arlo.messages
 from helpers.safe_print import s_print
-
+import arlo.device_db
 
 class Device(ABC):
 
@@ -54,6 +54,9 @@ class Device(ABC):
                             result = False
                         else:
                             result = True
+                            # Persist any register set messages in the database
+                            if message['Type'] == 'registerSet':
+                                arlo.device_db.DeviceDB.persist_register_set(self.serial_number, message)
             except:
                 print(f'Exception: {sys.exc_info()}')
             finally:

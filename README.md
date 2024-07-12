@@ -10,7 +10,7 @@ You can either emulate the basestation using the same SSID and capture and re-us
 
 You can't use the camera's native direct-join-to-WiFi functionality; you must pair the camera as you would to a base station.
 
-Finally, while you can use the API to control the camera (e.g. set quality, arm/disarm), there is NO state maintained; if the camera restarts, or falls off WiFi and rejoins/reregisters, it will be reprovisioned with the defaults, so you will need to issue your commands to the camera again.
+Finally, you can use the API to control the camera (e.g. set quality, arm/disarm). The current `registerSet` configuration for the camera is stored in the database after each change, so if the camera restarts, or falls off WiFi and rejoins/reregisters, it will be reprovisioned with what is had previously and you don't need to reissue API calls.
 
 The default video quality can be set with the `VideoQualityDefault` config option.  The options are device specific.
 * Cameras: `low`, `medium`, `high`, `subscription`, `insane`.  Default: `insane`
