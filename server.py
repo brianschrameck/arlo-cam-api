@@ -1,7 +1,6 @@
 import select
 import socket
 import threading
-import sqlite3
 import yaml
 import copy
 
@@ -18,23 +17,7 @@ with open(r'config.yaml') as file:
     config = yaml.load(file, Loader=yaml.FullLoader)
 
 webhook_manager = WebHookManager(config)
-
-with sqlite3.connect('arlo.db') as conn:
-    c = conn.cursor()
-    tables = c.execute("SELECT tbl_name FROM sqlite_schema WHERE type='table' AND tbl_name='camera'").fetchall()
-    if tables != []:
-        c.execute('DROP INDEX IF EXISTS idx_device_serialnumber')
-        c.execute('DROP INDEX IF EXISTS idx_device_ip')
-        c.execute('DROP INDEX IF EXISTS idx_device_friendlyname')
-        c.execute('DROP INDEX IF EXISTS idx_device_hostname')
-        c.execute('ALTER TABLE camera RENAME TO devices')
-
-    c.execute("CREATE TABLE IF NOT EXISTS devices (ip text, serialnumber text, hostname text, status text, register_set text, friendlyname text)")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_serialnumber ON devices (serialnumber)")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_ip ON devices (ip)")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_friendlyname ON devices (friendlyname)")
-    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_device_hostname ON devices (hostname)")
-    conn.commit()
+DeviceDB.ensure_schema()
 
 
 WIFI_COUNTRY_CODE = config.get('WifiCountryCode', "US")
@@ -67,6 +50,10 @@ class ConnectionThread(threading.Thread):
                     device = DeviceDB.from_db_serial(msg['SystemSerialNumber'])
                     if device is None:
                         device = DeviceFactory.createDevice(self.ip, msg)
+                        if device is None:
+                            s_print(f"<[{self.ip}][{msg['ID']}] Unsupported device model: {msg['SystemModelNumber']}")
+                            self.connection.close()
+                            break
                     else:
                         device.ip = self.ip
                         device.registration = msg
@@ -74,6 +61,7 @@ class ConnectionThread(threading.Thread):
                     s_print(f"<[{self.ip}][{msg['ID']}] Registration from {msg['SystemSerialNumber']} - {device.hostname}")
 
                     device.send_initial_register_set(WIFI_COUNTRY_CODE, VIDEO_ANTI_FLICKER_RATE, VIDEO_QUALITY_DEFAULT)
+                    DeviceDB.persist(device)
                     if NOTIFY_REGISTERD_AND_STATUS_UPDATE:
                         webhook_manager.registration_received(
                             device.ip, device.friendly_name, device.hostname, device.serial_number, device.registration)
