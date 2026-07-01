@@ -41,14 +41,15 @@ def home():
 
 @app.route('/device', methods=['GET'])
 def list():
+    DeviceDB.ensure_schema()
     with sqlite3.connect('arlo.db') as conn:
         c = conn.cursor()
-        c.execute("SELECT * FROM devices")
+        c.execute("SELECT ip, hostname, serialnumber, friendlyname FROM devices")
         rows = c.fetchall()
         devices = []
         if rows is not None:
             for row in rows:
-                (ip, serial_number, hostname, _, _, friendly_name) = row
+                (ip, hostname, serial_number, friendly_name) = row
                 devices.append({"ip": ip, "hostname": hostname,
                                "serial_number": serial_number, "friendly_name": friendly_name})
 
