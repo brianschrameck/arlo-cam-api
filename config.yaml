@@ -13,3 +13,8 @@ UserRecordingWebHookUrl: "http://192.168.1.72:11080/endpoint/@scrypted/arlo-loca
 StatusUpdateWebHookUrl: "http://192.168.1.72:11080/endpoint/@scrypted/arlo-local/public/statusUpdated"
 RegistrationWebHookUrl: "http://192.168.1.72:11080/endpoint/@scrypted/arlo-local/public/registered"
 ButtonPressWebHookUrl: "http://192.168.1.72:11080/endpoint/@scrypted/arlo-local/public/buttonPressed"
+
+# Interval (seconds) between keepalive statusRequest beacons sent to each
+# known camera. Mimics the Arlo base station beacon so cameras do not
+# assume the basestation is gone (MaxMissedBeaconTime) and drop WiFi.
+BeaconIntervalSeconds: 60
