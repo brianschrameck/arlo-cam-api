@@ -28,6 +28,7 @@ NOTIFY_ON_MOTION_TIMEOUT_ALERT = config.get('NotifyOnMotionTimeoutAlert', False)
 NOTIFY_ON_AUDIO_ALERT = config.get('NotifyOnAudioAlert', False)
 NOTIFY_ON_BUTTON_PRESS_ALERT = config.get('NotifyOnButtonPressAlert', True)
 NOTIFY_REGISTERD_AND_STATUS_UPDATE = config.get('NotifyRegisteredAndStatusUpdate', True)
+SNAPSHOT_ON_MOTION = config.get('SnapshotOnMotion', False)
 
 
 class ConnectionThread(threading.Thread):
@@ -68,6 +69,15 @@ class ConnectionThread(threading.Thread):
                 elif (msg['Type'] == "status"):
                     s_print(f"<[{self.ip}][{msg['ID']}] Status from {msg['SystemSerialNumber']}")
                     device = DeviceDB.from_db_serial(msg['SystemSerialNumber'])
+                    if device is None:
+                        from arlo.camera import Camera
+                        cam_msg = dict(msg.dictionary)
+                        if 'SystemModelNumber' not in cam_msg:
+                            cam_msg['SystemModelNumber'] = 'VMC4040P'
+                        device = Camera(self.ip, Message(cam_msg))
+                        device.status = {}
+                        device.friendly_name = msg['SystemSerialNumber']
+                        s_print(f"<[{self.ip}][{msg['ID']}] Auto-registered {device.serial_number} on status (forced Camera)")
                     device.ip = self.ip
                     device.status = msg
                     DeviceDB.persist(device)
@@ -85,6 +95,14 @@ class ConnectionThread(threading.Thread):
                                 device.ip, device.friendly_name, device.hostname, device.serial_number,
                                 msg['PIRMotion'].get('zones', []),
                                 "")
+                        if SNAPSHOT_ON_MOTION:
+                            import requests
+                            try:
+                                snap_url = f"http://arlo-snapshot:8000/snapshot/{device.serial_number}"
+                                requests.post(snap_url, timeout=35)
+                                s_print(f"<[{self.ip}][{msg['ID']}] Triggered snapshot for {device.serial_number}")
+                            except Exception as e:
+                                s_print(f"<[{self.ip}][{msg['ID']}] Snapshot trigger failed: {e}")
                     elif alert_type == "audioAlert":
                         if NOTIFY_ON_AUDIO_ALERT:
                             # TODO: implement this

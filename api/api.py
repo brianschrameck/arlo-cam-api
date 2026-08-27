@@ -86,12 +86,11 @@ def status_request(serial, device: Device):
 @app.route('/device/<serial>/userstreamactive', methods=['POST'])
 @validate_device_request()
 def user_stream_active(serial, req_body, device: Camera):
-    # active = req_body["active"]
-    # if active is None:
-    #     flask.abort(400)
-
-    # result = device.set_user_stream_active(int(active))
-    return flask.jsonify({"result": True})
+    active = req_body.get("active")
+    if active is None:
+        flask.abort(400)
+    result = device.set_user_stream_active(int(active))
+    return flask.jsonify({"result": result})
 
 
 @app.route('/device/<serial>/arm', methods=['POST'])
@@ -243,4 +242,4 @@ def register_get(serial, req_body, device: Device):
 
 
 def get_thread():
-    return threading.Thread(target=app.run(host='0.0.0.0'))
+    return threading.Thread(target=app.run, kwargs={'host': '0.0.0.0'})
